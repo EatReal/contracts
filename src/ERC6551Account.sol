@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "./INomad3.sol";
+import "./Nomad3.sol";
 
 interface IERC6551Account {
     receive() external payable;
@@ -241,7 +241,6 @@ contract ERC6551Account is
      * @param _year The year of the event.
      * @param _name The name of the event.
      * @param _date The date of the event.
-     * @param _contractAddress The contract address that minted the NFT.
      * @param _tokenId The ID of the NFT.
      */
     function callCreateEventOnNomad3(
@@ -249,7 +248,6 @@ contract ERC6551Account is
         uint256 _year,
         string memory _name,
         uint256 _date,
-        address _contractAddress,
         uint256 _tokenId
     ) public {
         // Ensure that the caller has the right permissions
@@ -259,7 +257,7 @@ contract ERC6551Account is
         ++state;
 
         // Create an instance of the INomad3 interface pointing to _nomad3Address
-        INomad3 nomad3 = INomad3(_nomad3Address);
+        Nomad3 nomad3 = Nomad3(_nomad3Address);
 
         // Call the createEvent function on the specified Nomad3 contract
         nomad3.createEvent(
@@ -267,8 +265,8 @@ contract ERC6551Account is
             _year,
             _name,
             _date,
-            _contractAddress,
-            _tokenId
+            _tokenId,
+            address(this)
         );
     }
 }

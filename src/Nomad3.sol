@@ -9,6 +9,11 @@ contract Nomad3 {
     //---------------------VARIABLE DECLARATIONS---------------------//
 
     /**
+     * @dev Address of the contract that mints the event NFTs.
+     */
+    address public eventMinterContractAddress;
+
+    /**
      * @dev I want to know in one glance how many years worth of event NFTs is being held by the address.
      * @dev e.g. with address 0x...09, I know that I have 2023 and 2024 NFT helds.
      * @dev This can be called internally or externally.
@@ -119,41 +124,40 @@ contract Nomad3 {
         _;
     }
 
+    //---------------------CONSTRUCTOR---------------------//
+    constructor(address _eventMinterContractAddress) {
+        eventMinterContractAddress = _eventMinterContractAddress;
+    }
+
     //---------------------FUNCTIONS---------------------//
 
     /**
      * @dev I want to know how many years worth of event NFTs is being held by the address.
      */
-    function getYears(address _address) public view returns (uint256[] memory) {
-        return addressToYears[_address];
+    function getYears() public view returns (uint256[] memory) {
+        return addressToYears[msg.sender];
     }
 
     /**
      * @dev I want to know how many events are in each years held by the address.
      */
-    function getEventCount(
-        address _address,
-        uint256 _year
-    ) public view returns (uint256) {
-        return addressToYearToEventCount[_address][_year];
+    function getEventCount(uint256 _year) public view returns (uint256) {
+        return addressToYearToEventCount[msg.sender][_year];
     }
 
     /**
      * @dev I want to know what are the events held by the address in a specific year.
      */
-    function getEvents(
-        address _address,
-        uint256 _year
-    ) public view returns (Event[] memory) {
+    function getEvents(uint256 _year) public view returns (Event[] memory) {
         Event[] memory events = new Event[](
-            addressToYearToEventCount[_address][_year]
+            addressToYearToEventCount[msg.sender][_year]
         );
         for (
             uint256 i = 0;
-            i < addressToYearToEventCount[_address][_year];
+            i < addressToYearToEventCount[msg.sender][_year];
             i++
         ) {
-            events[i] = addressToYearToEvents[_address][_year][i];
+            events[i] = addressToYearToEvents[msg.sender][_year][i];
         }
         return events;
     }
@@ -174,11 +178,10 @@ contract Nomad3 {
      * @dev A restriction is that this cannot be done for future years and a year that already exists.
      */
     function createYear(
-        address _address,
         uint256 _year
-    ) public yearNotInFuture(_year) yearDoesNotExist(_address, _year) {
-        addressToYears[_address].push(_year);
-        emit YearCreated(_address, _year);
+    ) public yearNotInFuture(_year) yearDoesNotExist(msg.sender, _year) {
+        addressToYears[msg.sender].push(_year);
+        emit YearCreated(msg.sender, _year);
     }
 
     /**3
@@ -192,8 +195,8 @@ contract Nomad3 {
         uint256 _year, // The year of the event.
         string memory _name, // The name of the event.
         uint256 _date, // The date of the event in UNIX timestamp.
-        address _contractAddress, // The address of the contract that minted the NFT.
-        uint256 _tokenId // The ID of the NFT.
+        uint256 _tokenId, // The ID of the NFT.
+        address tbaAddress // The address of the token bound account tied to the NFT.
     )
         public
         eventDoesNotExist(_walletAddress, _year, _tokenId)
@@ -207,9 +210,9 @@ contract Nomad3 {
             addressToYearToEventCount[_walletAddress][_year],
             _name,
             _date,
-            _contractAddress,
+            eventMinterContractAddress,
             _tokenId,
-            msg.sender
+            tbaAddress
         );
         addressToYearToEventCount[_walletAddress][_year]++;
         emit EventCreated(
@@ -217,9 +220,9 @@ contract Nomad3 {
             _year,
             _name,
             _date,
-            _contractAddress,
+            eventMinterContractAddress,
             _tokenId,
-            msg.sender
+            tbaAddress
         );
         emit EventCountUpdated(
             _walletAddress,
