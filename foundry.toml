@@ -4,12 +4,12 @@ out = "out"
 libs = ["lib"]
 solc = "0.8.23"
 solc-optimizer = true
-solc-optimizer-runs = 99999
+solc-optimizer-runs = 200
+viaIR = true
 remappings = [
     "@openzeppelin/=lib/openzeppelin-contracts/",
     "ds-test/=lib/forge-std/lib/ds-test/src/",
     "forge-std/=lib/forge-std/src/"
     ]
 
-[profile.default.ir]
-enabled = true
+
