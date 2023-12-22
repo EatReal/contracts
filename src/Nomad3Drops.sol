@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "./IERC6551Registry.sol";
+import "./ERC6551Registry.sol";
 
 contract Nomad3Drops is ERC721 {
     using Strings for uint256;
@@ -93,7 +93,7 @@ contract Nomad3Drops is ERC721 {
         _safeMint(msg.sender, newTokenId);
 
         // Create an instance of the INomad3 interface pointing to _nomad3Address
-        IERC6551Registry registry = IERC6551Registry(erc6551RegistryAddress);
+        ERC6551Registry registry = ERC6551Registry(erc6551RegistryAddress);
 
         // Call the createAccount function on the specified Nomad3 contract
         address tbaAddress = registry.createAccount(
