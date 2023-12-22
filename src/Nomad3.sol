@@ -9,6 +9,14 @@ contract Nomad3 {
     //---------------------VARIABLE DECLARATIONS---------------------//
 
     /**
+     * @dev I want to know what is the contract address that is responsible for minting the event NFTs.
+     * @dev Ideally, this is like a "Viction POAP"
+     * @dev For now, the POAP contract address is used
+     */
+    address public eventMinterContractAddress =
+        0x22C1f6050E56d2876009903609a2cC3fEf83B415;
+
+    /**
      * @dev I want to know in one glance how many years worth of event NFTs is being held by the address.
      * @dev e.g. with address 0x...09, I know that I have 2023 and 2024 NFT helds.
      * @dev This can be called internally or externally.
@@ -27,6 +35,7 @@ contract Nomad3 {
      * @dev A struct to specify the expected data for each event NFT powered by ERC6551.
      */
     struct Event {
+        uint256 id; // The ID of the event.
         string name; // The name of the event.
         uint256 date; // The date of the event in UNIX timestamp.
         address contractAddress; // The address of the contract that minted the NFT.
@@ -35,14 +44,88 @@ contract Nomad3 {
     }
 
     /**
-     * @dev I want to know what are the events held by the address in a specific year.
+     * @dev I want to know what are the events held by the address in a specific year organized by index.
      */
-    mapping(address => mapping(uint256 => Event[]))
+    mapping(address => mapping(uint256 => mapping(uint256 => Event)))
         public addressToYearToEvents;
 
     //---------------------EVENTS---------------------//
 
+    event EventMinterContractAddressUpdated(address indexed _address);
+
+    event YearCreated(address indexed _address, uint256 indexed _year);
+
+    event EventCreated(
+        address indexed _address,
+        uint256 indexed _year,
+        string _name,
+        uint256 _date,
+        address _contractAddress,
+        uint256 _tokenId,
+        address _tbaAddress
+    );
+
+    event EventCountUpdated(
+        address indexed _address,
+        uint256 indexed _year,
+        uint256 _eventCount
+    );
+
+    //---------------------ERRORS---------------------//
+    error FutureYearError(uint256 _year);
+
+    error YearExistsError(address _address, uint256 _year);
+
+    error YearDoesNotExistError(address _address, uint256 _year);
+
+    error EventExistsError(address _address, uint256 _year, uint256 _tokenId);
+
+    error NotTokenBoundAccountError(address _address);
+
     //---------------------MODIFIERS---------------------//
+    modifier yearNotInFuture(uint256 _year) {
+        if (_year > getCurrentYear()) revert FutureYearError(_year);
+        _;
+    }
+
+    modifier yearDoesNotExist(address _address, uint256 _year) {
+        for (uint256 i = 0; i < addressToYears[_address].length; i++) {
+            if (addressToYears[_address][i] == _year)
+                revert YearExistsError(_address, _year);
+        }
+        _;
+    }
+
+    modifier eventDoesNotExist(
+        address _address,
+        uint256 _year,
+        uint256 _tokenId
+    ) {
+        for (
+            uint256 i = 0;
+            i < addressToYearToEventCount[_address][_year];
+            i++
+        ) {
+            if (addressToYearToEvents[_address][_year][i].tokenId == _tokenId)
+                revert EventExistsError(_address, _year, _tokenId);
+        }
+        _;
+    }
+
+    modifier yearShouldExist(address _address, uint256 _year) {
+        bool yearExists = false;
+        for (uint256 i = 0; i < addressToYears[_address].length; i++) {
+            if (addressToYears[_address][i] == _year) yearExists = true;
+        }
+        if (!yearExists) revert YearDoesNotExistError(_address, _year);
+        _;
+    }
+
+    modifier onlyTBA(address _walletAddress) {
+        if (msg.sender == _walletAddress)
+            revert NotTokenBoundAccountError(_walletAddress);
+        _;
+    }
 
     //---------------------FUNCTIONS---------------------//
 
@@ -65,17 +148,22 @@ contract Nomad3 {
 
     /**
      * @dev I want to know what are the events held by the address in a specific year.
-     * TODO: Format this to return data in a way that is easy to read.
      */
     function getEvents(
         address _address,
         uint256 _year
     ) public view returns (Event[] memory) {
-        for (uint256 i = 0; i < addressToYears[_address].length; i++) {
-            if (addressToYears[_address][i] == _year) {
-                return addressToYearToEvents[_address][_year];
-            }
+        Event[] memory events = new Event[](
+            addressToYearToEventCount[_address][_year]
+        );
+        for (
+            uint256 i = 0;
+            i < addressToYearToEventCount[_address][_year];
+            i++
+        ) {
+            events[i] = addressToYearToEvents[_address][_year][i];
         }
+        return events;
     }
 
     /**
@@ -90,49 +178,76 @@ contract Nomad3 {
     }
 
     /**
-     * @dev I want to create a new year category for the address.
-     * @dev A restriction is that this cannot be done for future years and a year that already exists.
+     * @dev I want to know what is the current contract address that is responsible for minting the event NFTs.
      */
-    function createYear(address _address, uint256 _year) public {
-        require(
-            _year <= getCurrentYear(),
-            "Cannot create a year in the future."
-        );
-
-        for (uint256 i = 0; i < addressToYears[_address].length; i++) {
-            require(
-                addressToYears[_address][i] != _year,
-                "Year already exists."
-            );
-        }
-        addressToYears[_address].push(_year);
+    function getEventMinterContractAddress() public view returns (address) {
+        return eventMinterContractAddress;
     }
 
     /**
+     * @dev I want to create a new year category for the address.
+     * @dev A restriction is that this cannot be done for future years and a year that already exists.
+     */
+    function createYear(
+        address _address,
+        uint256 _year
+    ) public yearNotInFuture(_year) yearDoesNotExist(_address, _year) {
+        addressToYears[_address].push(_year);
+        emit YearCreated(_address, _year);
+    }
+
+    /**3
      * @dev I want to create a new event for the address in a specific year and update the event count.
      * @dev This is to be called by the newly deployed TBA. Append the call to this function alongside the TBA deployment using the SDK.
      * @dev Click on "Claim" button -> Claim the event-related NFT first, wait for tx to be mined -> use the SDK to deploy the TBA -> call this function.
      * @dev https://docs.tokenbound.org/sdk/methods#createaccount
-     * @dev TODO: figure out how to check the poap on gnosis from viction
      */
     function createEvent(
         address _walletAddress, // The address of the wallet that deployed the TBA.
         uint256 _year, // The year of the event.
         string memory _name, // The name of the event.
         uint256 _date, // The date of the event in UNIX timestamp.
-        address _contractAddress, // The address of the contract that minted the NFT. TODO: maintain same contract address for all events.
+        address _contractAddress, // The address of the contract that minted the NFT.
         uint256 _tokenId // The ID of the NFT.
-    ) public {
-        // TODO: prevent duplicate event entries
-        addressToYearToEvents[_walletAddress][_year].push(
-            Event({
-                name: _name,
-                date: _date,
-                contractAddress: _contractAddress,
-                tokenId: _tokenId,
-                tbaAddress: msg.sender
-            })
+    )
+        public
+        eventDoesNotExist(_walletAddress, _year, _tokenId)
+        yearNotInFuture(_year)
+        yearShouldExist(_walletAddress, _year)
+        onlyTBA(_walletAddress)
+    {
+        addressToYearToEvents[_walletAddress][_year][
+            addressToYearToEventCount[_walletAddress][_year]
+        ] = Event(
+            addressToYearToEventCount[_walletAddress][_year],
+            _name,
+            _date,
+            _contractAddress,
+            _tokenId,
+            msg.sender
         );
         addressToYearToEventCount[_walletAddress][_year]++;
+        emit EventCreated(
+            _walletAddress,
+            _year,
+            _name,
+            _date,
+            _contractAddress,
+            _tokenId,
+            msg.sender
+        );
+        emit EventCountUpdated(
+            _walletAddress,
+            _year,
+            addressToYearToEventCount[_walletAddress][_year]
+        );
+    }
+
+    /**
+     * @dev I want to update the event minter contract address.
+     */
+    function updateEventMinterContractAddress(address _address) public {
+        eventMinterContractAddress = _address;
+        emit EventMinterContractAddressUpdated(_address);
     }
 }
