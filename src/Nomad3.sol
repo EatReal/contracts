@@ -9,14 +9,6 @@ contract Nomad3 {
     //---------------------VARIABLE DECLARATIONS---------------------//
 
     /**
-     * @dev I want to know what is the contract address that is responsible for minting the event NFTs.
-     * @dev Ideally, this is like a "Viction POAP"
-     * @dev For now, the POAP contract address is used
-     */
-    address public eventMinterContractAddress =
-        0x22C1f6050E56d2876009903609a2cC3fEf83B415;
-
-    /**
      * @dev I want to know in one glance how many years worth of event NFTs is being held by the address.
      * @dev e.g. with address 0x...09, I know that I have 2023 and 2024 NFT helds.
      * @dev This can be called internally or externally.
@@ -178,13 +170,6 @@ contract Nomad3 {
     }
 
     /**
-     * @dev I want to know what is the current contract address that is responsible for minting the event NFTs.
-     */
-    function getEventMinterContractAddress() public view returns (address) {
-        return eventMinterContractAddress;
-    }
-
-    /**
      * @dev I want to create a new year category for the address.
      * @dev A restriction is that this cannot be done for future years and a year that already exists.
      */
@@ -241,13 +226,5 @@ contract Nomad3 {
             _year,
             addressToYearToEventCount[_walletAddress][_year]
         );
-    }
-
-    /**
-     * @dev I want to update the event minter contract address.
-     */
-    function updateEventMinterContractAddress(address _address) public {
-        eventMinterContractAddress = _address;
-        emit EventMinterContractAddressUpdated(_address);
     }
 }
