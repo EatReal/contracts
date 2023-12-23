@@ -52,7 +52,10 @@ contract Nomad3Drops is ERC721 {
         erc6551ImplementationAddress = erc6551ImplementationAddress_;
     }
 
-    function registerEvent(string memory metadata, uint256 maxDrops) public {
+    function registerEvent(
+        string memory metadata,
+        uint256 maxDrops
+    ) public returns (uint256) {
         bytes32 metadataHash = keccak256(abi.encodePacked(metadata));
 
         if (metadataHashes[metadataHash]) {
@@ -73,6 +76,8 @@ contract Nomad3Drops is ERC721 {
         organizerToEvents[msg.sender].push(newEventId);
 
         emit EventCreated(newEventId, metadata, maxDrops);
+
+        return newEventId;
     }
 
     function mintNFT(uint256 eventId) public returns (address payable) {
