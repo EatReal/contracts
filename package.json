@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@thirdweb-dev/sdk": "^4.0.23"
+  },
+  "scripts": {
+    "postinstall": "npx --yes thirdweb@latest generate"
+  }
+}
