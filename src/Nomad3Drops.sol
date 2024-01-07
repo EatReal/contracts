@@ -10,8 +10,6 @@ contract Nomad3Drops is ERC721 {
 
     struct Event {
         string metadata;
-        uint256 maxDrops;
-        uint256 minted;
         mapping(address => bool) hasMinted;
         bool isRegistered;
     }
@@ -29,7 +27,6 @@ contract Nomad3Drops is ERC721 {
 
     error EventAlreadyRegistered(uint256 eventId);
     error EventDoesNotExist(uint256 eventId);
-    error MaxNFTsMinted(uint256 eventId);
     error AddressHasAlreadyMinted(uint256 eventId, address address_);
     error MetadataIsNotUnique(string metadata);
     error TokenDoesNotExist(uint256 tokenId);
@@ -66,8 +63,6 @@ contract Nomad3Drops is ERC721 {
 
         Event storage newEvent = events[newEventId];
         newEvent.metadata = metadata;
-        newEvent.maxDrops = maxDrops;
-        newEvent.minted = 0;
         newEvent.isRegistered = true;
 
         metadataHashes[metadataHash] = true; // Mark this metadata as used
@@ -83,15 +78,11 @@ contract Nomad3Drops is ERC721 {
     function mintNFT(uint256 eventId) public returns (address payable) {
         Event storage event_ = events[eventId];
 
-        if (event_.minted >= event_.maxDrops) {
-            revert MaxNFTsMinted(eventId);
-        }
         if (event_.hasMinted[msg.sender]) {
             revert AddressHasAlreadyMinted(eventId, msg.sender);
         }
 
         event_.hasMinted[msg.sender] = true;
-        event_.minted++;
 
         uint256 newTokenId = ++currentTokenId;
         tokenToEvent[newTokenId] = eventId; // Link the new token ID to the event ID

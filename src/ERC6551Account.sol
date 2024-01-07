@@ -244,11 +244,11 @@ contract ERC6551Account is
      * @param _tokenId The ID of the NFT.
      */
     function callCreateEventOnNomad3(
-        address _nomad3Address,
+        address _nomad3Address, 
         uint256 _year,
         string memory _name,
         uint256 _date,
-        uint256 _tokenId
+        uint256 _tokenId //TODO: get this dynamically
     ) public {
         // Ensure that the caller has the right permissions
         require(_isValidSigner(msg.sender), "Invalid signer");
